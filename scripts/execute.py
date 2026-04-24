@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PHASES_DIR = ROOT / "phases"
 DOCS_DIR = ROOT / "docs"
 CLAUDE_FILE = ROOT / "CLAUDE.md"
+REVIEW_PROMPT_FILE = PHASES_DIR / "_review-prompt.md"
 VALID_STATUSES = {"pending", "completed", "error", "blocked"}
 MAX_RETRIES = 3
 
@@ -36,6 +37,10 @@ def read_json(path: Path) -> dict:
 
 def write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def relative_path(path: Path) -> str:
+    return str(path.relative_to(ROOT))
 
 
 def load_guardrails() -> str:
@@ -88,6 +93,22 @@ def run_ac_commands(step_file: Path) -> tuple[bool, str]:
                 message += f"\n{output}"
             return False, message
     return True, ""
+
+
+def run_capture(command: list[str]) -> str:
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0 and output:
+        return f"(exit {result.returncode})\n{output}"
+    if result.returncode != 0:
+        return f"(exit {result.returncode})"
+    return output
 
 
 def update_top_phase_status(phase_dir_name: str, status: str) -> None:
@@ -147,6 +168,183 @@ def invoke_claude(prompt: str, output_path: Path) -> None:
         "recorded_at": now_iso(),
     }
     output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def invoke_claude_text(prompt: str) -> dict:
+    try:
+        result = subprocess.run(
+            ["claude", "-p", "--dangerously-skip-permissions", "--output-format", "json", prompt],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "recorded_at": now_iso(),
+        }
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        return {
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": str(exc),
+            "recorded_at": now_iso(),
+        }
+
+
+def extract_json_object(text: str) -> dict:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = re.sub(r"^```(?:json)?\s*", "", stripped)
+        stripped = re.sub(r"\s*```$", "", stripped).strip()
+
+    decoder = json.JSONDecoder()
+    for index, char in enumerate(stripped):
+        if char != "{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(stripped[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            return value
+    raise json.JSONDecodeError("No JSON object found", stripped, 0)
+
+
+def parse_claude_review(raw: dict) -> dict:
+    stdout = raw.get("stdout", "")
+    payload = extract_json_object(stdout)
+    result_text = payload.get("result") if isinstance(payload.get("result"), str) else stdout
+    return extract_json_object(result_text)
+
+
+def as_list(value: object) -> list:
+    if isinstance(value, list):
+        return value
+    if value in (None, ""):
+        return []
+    return [value]
+
+
+def latest_completed_step(index: dict) -> Optional[int]:
+    completed = [
+        step["step"]
+        for step in index.get("steps", [])
+        if step.get("status") == "completed" and isinstance(step.get("step"), int)
+    ]
+    if not completed:
+        return None
+    return max(completed)
+
+
+def build_review_prompt(phase_dir: Path, index: dict, step_number: int, guardrails: str) -> str:
+    step_file = phase_dir / f"step{step_number}.md"
+    template = REVIEW_PROMPT_FILE.read_text(encoding="utf-8")
+    status = run_capture(["git", "status", "--short"])
+    diff = run_capture(["git", "diff", "--", "."])
+
+    return "\n\n---\n\n".join(
+        [
+            template,
+            guardrails,
+            f"## Review Target\n\n- Phase: `{phase_dir.name}`\n- Step: `{step_number}`",
+            f"## Step Spec\n\n{step_file.read_text(encoding='utf-8')}",
+            f"## Phase Index\n\n```json\n{json.dumps(index, indent=2, ensure_ascii=False)}\n```",
+            f"## Git Status\n\n```text\n{status}\n```",
+            f"## Git Diff\n\n```diff\n{diff[-20000:]}\n```",
+        ]
+    )
+
+
+def write_correction_prompt(
+    correction_prompt_file: Path,
+    phase_dir: Path,
+    step_number: int,
+    blocking: list,
+    non_blocking: list,
+) -> None:
+    step_file = phase_dir / f"step{step_number}.md"
+    content = "\n\n".join(
+        [
+            "# Codex Correction Prompt",
+            "You are Codex. Perform exactly one correction pass for the blocking review issues below.",
+            "Do not run another Claude review automatically. After the correction, rerun the step Acceptance Criteria and `python3 scripts/verify.py`.",
+            f"## Phase\n\n`{phase_dir.name}`",
+            f"## Step\n\n`{step_number}`",
+            f"## Step Spec\n\n{step_file.read_text(encoding='utf-8')}",
+            f"## Blocking Issues\n\n```json\n{json.dumps(blocking, indent=2, ensure_ascii=False)}\n```",
+            f"## Non-Blocking Notes\n\n```json\n{json.dumps(non_blocking, indent=2, ensure_ascii=False)}\n```",
+        ]
+    )
+    correction_prompt_file.write_text(content + "\n", encoding="utf-8")
+
+
+def review_phase(phase_dir_name: str) -> int:
+    phase_dir = PHASES_DIR / phase_dir_name
+    index_file = phase_dir / "index.json"
+    if not phase_dir.exists() or not index_file.exists():
+        print(f"Phase not found: {phase_dir_name}", file=sys.stderr)
+        return 1
+    if not REVIEW_PROMPT_FILE.exists():
+        print(f"Review prompt not found: {relative_path(REVIEW_PROMPT_FILE)}", file=sys.stderr)
+        return 1
+
+    index = read_json(index_file)
+    step_number = latest_completed_step(index)
+    if step_number is None:
+        print(f"No completed step to review: {phase_dir_name}", file=sys.stderr)
+        return 1
+
+    review_file = phase_dir / f"step{step_number}-review.json"
+    correction_prompt_file = phase_dir / f"step{step_number}-correction-prompt.md"
+    if review_file.exists():
+        existing = read_json(review_file)
+        print(f"Review already exists: {relative_path(review_file)}")
+        return 1 if existing.get("verdict") == "needs_correction" else 0
+
+    prompt = build_review_prompt(phase_dir, index, step_number, load_guardrails())
+    print(f"Running Claude review for step {step_number}: {phase_dir_name}")
+    raw = invoke_claude_text(prompt)
+
+    correction_prompt_path: Optional[str] = None
+    try:
+        parsed = parse_claude_review(raw)
+        blocking = as_list(parsed.get("blocking"))
+        non_blocking = as_list(parsed.get("non_blocking"))
+        verdict = "needs_correction" if blocking else "pass"
+    except (json.JSONDecodeError, TypeError, AttributeError) as exc:
+        blocking = []
+        non_blocking = [
+            {
+                "reason": "Claude review output could not be parsed; treating as non-blocking.",
+                "error": str(exc),
+                "raw": raw,
+            }
+        ]
+        verdict = "pass"
+
+    if blocking:
+        if not correction_prompt_file.exists():
+            write_correction_prompt(correction_prompt_file, phase_dir, step_number, blocking, non_blocking)
+        correction_prompt_path = relative_path(correction_prompt_file)
+
+    review = {
+        "step": step_number,
+        "timestamp": now_iso(),
+        "verdict": verdict,
+        "blocking": blocking,
+        "non_blocking": non_blocking,
+        "correction_prompt_path": correction_prompt_path,
+    }
+    write_json(review_file, review)
+
+    print(f"Review artifact: {relative_path(review_file)}")
+    if verdict == "needs_correction":
+        print(f"Correction prompt: {correction_prompt_path}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def get_step(index: dict, step_number: int) -> dict:
@@ -254,8 +452,12 @@ def execute_phase(phase_dir_name: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Execute a phase directory.")
     parser.add_argument("phase", help="Phase directory name, e.g. 0-foundation")
+    parser.add_argument("--review", action="store_true", help="Run one Claude review after successful execution.")
     args = parser.parse_args()
-    return execute_phase(args.phase)
+    result = execute_phase(args.phase)
+    if result != 0 or not args.review:
+        return result
+    return review_phase(args.phase)
 
 
 if __name__ == "__main__":
