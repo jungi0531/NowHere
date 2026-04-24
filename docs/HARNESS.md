@@ -40,45 +40,25 @@ It does not support:
 
 Verify the repo:
 
-```bash
-python3 scripts/verify.py
-```
+    python3 scripts/verify.py
 
-Execute the first phase:
+Execute a phase:
 
-```bash
-python3 scripts/execute.py 0-foundation
-```
+    python3 scripts/execute.py <phase>
 
-Execute a phase and then run one Claude review:
+Execute a phase with Claude review:
 
-```bash
-python3 scripts/execute.py 0-foundation --review
-```
+    python3 scripts/execute.py <phase> --review
 
-When `--review` is used, the executor first runs the normal `execute_phase(<phase>)` loop. If that loop fails, blocks, or errors, execution stops before review.
+Create a PR to develop (after review passes):
 
-On success, Claude performs one review pass only. The review is saved to:
+    python3 scripts/pr.py
 
-```text
-phases/<phase>/stepN-review.json
-```
+Auto-merge to develop (after PR is open and all conditions pass):
 
-If Claude reports blocking issues, `execute.py` writes a Codex correction prompt to:
+    python3 scripts/auto_merge.py
 
-```text
-phases/<phase>/stepN-correction-prompt.md
-```
-
-The correction prompt is for Codex to implement in one correction pass. Claude does not implement corrections, and the executor does not automatically run a second review. After applying a correction, rerun the step Acceptance Criteria and:
-
-```bash
-python3 scripts/verify.py
-```
-
-If Claude review output cannot be parsed, the raw output is saved under `non_blocking`, the verdict is treated as `pass`, and no correction prompt is created.
-
-보정 후 Claude 리뷰를 다시 실행하려면 기존 `phases/<phase>/stepN-review.json` 파일을 삭제한 뒤 `scripts/execute.py <phase> --review`를 다시 실행한다.
+develop → main merge is always manual and performed by the human owner only.
 
 ## Notes
 

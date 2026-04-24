@@ -347,6 +347,20 @@ def review_phase(phase_dir_name: str) -> int:
     return 0
 
 
+def auto_commit(step_number: int, step_name: str) -> None:
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if not result.stdout.strip():
+        return
+    subprocess.run(["git", "add", "-A"], cwd=ROOT, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"feat: step {step_number} — {step_name}"],
+        cwd=ROOT, check=True,
+    )
+
+
 def get_step(index: dict, step_number: int) -> dict:
     for step in index["steps"]:
         if step["step"] == step_number:
@@ -406,6 +420,7 @@ def execute_phase(phase_dir_name: str) -> int:
             if status == "completed":
                 passed, message = run_ac_commands(step_file)
                 if passed:
+                    auto_commit(step_number, step_name)
                     current["completed_at"] = now_iso()
                     write_json(index_file, index)
                     print(f"Completed step {step_number}: {step_name}")

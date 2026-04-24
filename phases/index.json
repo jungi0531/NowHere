@@ -5,6 +5,24 @@
       "name": "Foundation",
       "status": "completed",
       "updated_at": "2026-04-24T03:37:57+00:00"
+    },
+    {
+      "dir": "1-vertical-slice",
+      "name": "Vertical Slice",
+      "status": "completed",
+      "updated_at": "2026-04-24T04:16:51+00:00"
+    },
+    {
+      "dir": "2-branch-automation",
+      "name": "Branch Automation",
+      "status": "completed",
+      "updated_at": "2026-04-24T08:26:25+00:00"
+    },
+    {
+      "dir": "3-full-loop-automation",
+      "name": "Full Loop Automation",
+      "status": "completed",
+      "updated_at": "2026-04-24T08:55:53+00:00"
     }
   ]
 }
