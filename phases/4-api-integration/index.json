@@ -1,0 +1,31 @@
+{
+  "project": "NowHere",
+  "phase": "4-api-integration",
+  "steps": [
+    {
+      "step": 1,
+      "name": "env-and-packages",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "gemini-script-service",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "gemini-tts-service",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "supabase-session-log",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "wire-generating-player",
+      "status": "pending"
+    }
+  ]
+}
