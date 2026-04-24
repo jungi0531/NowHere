@@ -1,35 +1,90 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton, AppScreen, ScreenIntro, SurfaceCard } from '@/shared';
+import { useSessionDraftStore } from '@/shared/store/session-draft';
+
+function formatClock(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
 
 export function PlayerScreen() {
+  const mood = useSessionDraftStore((state) => state.mood);
+  const duration = useSessionDraftStore((state) => state.duration);
+  const note = useSessionDraftStore((state) => state.note);
+  const reset = useSessionDraftStore((state) => state.reset);
+  const totalSeconds = duration * 60;
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    setElapsedSeconds(0);
+  }, [duration]);
+
+  useEffect(() => {
+    if (elapsedSeconds >= totalSeconds) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setElapsedSeconds((current) => {
+        if (current >= totalSeconds) {
+          return current;
+        }
+        return current + 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [elapsedSeconds, totalSeconds]);
+
+  const progressWidth = `${Math.min(100, (elapsedSeconds / totalSeconds) * 100)}%` as const;
+  const breathPhase = Math.floor(elapsedSeconds / 4) % 2 === 0 ? '들이쉬어요' : '내쉬어요';
+  const breathCount = Math.floor(elapsedSeconds / 4) % 2 === 0 ? 'INHALE · 4' : 'EXHALE · 4';
+
   return (
     <AppScreen align="center" justify="center" tone="deep">
       <View style={styles.container}>
-        <ScreenIntro align="center" eyebrow="NOW PLAYING" size="hero" title="비 내리는 마음" />
+        <ScreenIntro
+          align="center"
+          eyebrow="NOW PLAYING"
+          size="hero"
+          title={`${mood} 마음을 위한 ${duration}분`}
+          body={note ? note : '오늘의 입력을 바탕으로 조용히 호흡을 이어가 보세요.'}
+        />
 
         <SurfaceCard accent style={styles.breathCard}>
           <View style={styles.breathOrb}>
             <View style={styles.breathOrbInner}>
-              <Text style={styles.breathLabel}>들이쉬어요</Text>
-              <Text style={styles.breathCount}>INHALE · 4</Text>
+              <Text style={styles.breathLabel}>{breathPhase}</Text>
+              <Text style={styles.breathCount}>{breathCount}</Text>
             </View>
           </View>
         </SurfaceCard>
 
-        <Text style={styles.quote}>&quot;편안히 앉아 눈을 감아주세요.&quot;</Text>
+        <Text style={styles.quote}>&quot;{mood}한 마음을 있는 그대로 두고 호흡을 따라가 보세요.&quot;</Text>
 
         <View style={styles.progressWrap}>
-          <Text style={styles.time}>00:01</Text>
+          <Text style={styles.time}>{formatClock(elapsedSeconds)}</Text>
           <View style={styles.track}>
-            <View style={styles.fill} />
+            <View style={[styles.fill, { width: progressWidth }]} />
           </View>
-          <Text style={styles.time}>05:00</Text>
+          <Text style={styles.time}>{formatClock(totalSeconds)}</Text>
         </View>
 
         <View style={styles.actions}>
-          <AppButton label="홈으로" kind="secondary" onPress={() => router.push('/home')} />
+          <AppButton
+            label="홈으로"
+            kind="secondary"
+            onPress={() => {
+              reset();
+              router.replace('/home');
+            }}
+          />
           <AppButton label="다시 생성 흐름 보기" onPress={() => router.push('/generating')} />
         </View>
       </View>
@@ -98,7 +153,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: {
-    width: '24%',
     height: '100%',
     backgroundColor: '#739274',
   },

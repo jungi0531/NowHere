@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton, AppScreen, ScreenIntro, SurfaceCard } from '@/shared';
+import { useSessionDraftStore } from '@/shared/store/session-draft';
 
 const steps = [
   { labelKo: '오늘의 마음을 읽는 중', labelEn: "Reading today's entry", state: 'done' },
@@ -11,6 +13,16 @@ const steps = [
 ] as const;
 
 export function GeneratingScreen() {
+  const duration = useSessionDraftStore((state) => state.duration);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      router.replace('/player');
+    }, 2500);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   return (
     <AppScreen align="center" justify="center" tone="deep">
       <View style={styles.container}>
@@ -19,7 +31,7 @@ export function GeneratingScreen() {
           eyebrow="GENERATING"
           size="hero"
           title={'오늘의 마음을\n읽고 있어요'}
-          body="약 5분 길이의 가이드를 만들고 있어요."
+          body={`약 ${duration}분 길이의 가이드를 만들고 있어요.`}
         />
 
         <SurfaceCard accent style={styles.progressCard}>
@@ -41,7 +53,7 @@ export function GeneratingScreen() {
           ))}
         </SurfaceCard>
 
-        <AppButton label="플레이어 보기" onPress={() => router.push('/player')} />
+        <AppButton label="플레이어 보기" onPress={() => router.replace('/player')} />
       </View>
     </AppScreen>
   );
