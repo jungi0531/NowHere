@@ -78,6 +78,8 @@ python3 scripts/verify.py
 
 If Claude review output cannot be parsed, the raw output is saved under `non_blocking`, the verdict is treated as `pass`, and no correction prompt is created.
 
+보정 후 Claude 리뷰를 다시 실행하려면 기존 `phases/<phase>/stepN-review.json` 파일을 삭제한 뒤 `scripts/execute.py <phase> --review`를 다시 실행한다.
+
 ## Notes
 
 - `verify.py` is intentionally light for now.
