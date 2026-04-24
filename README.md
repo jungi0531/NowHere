@@ -1,92 +1,476 @@
-# 🪷 지금여기 (NowHere)
+# NowHere
 
-<div align="center">
-<img width="329" src="" />
+**오늘의 감정과 상태를 바탕으로, AI가 그날의 명상 스크립트와 음성 가이드를 생성하는 개인 맞춤형 명상 앱**
 
-**AI 맞춤형 명상 가이드 모바일 앱**
+## Overview
 
-</div>
+`NowHere`는 미리 제작된 명상 콘텐츠를 재생하는 앱이 아닙니다.
 
-## 배포 주소
+사용자가 오늘의 감정, 에너지 상태, 머릿속 이슈를 짧게 입력하면, AI가 그날에 맞는 명상 스크립트를 만들고 `Gemini 3.1 Flash TTS Preview`로 음성 파일을 생성해 바로 들려주는 생성형 명상 앱을 목표로 합니다.
 
-> **개발 버전** : 준비 중 <br>
+핵심은 `대화형 음성 비서`가 아니라, **짧고 정확한 개인 맞춤 명상 세션을 즉시 생성해 재생하는 경험**입니다.
 
-## 개발자 소개
+## Product Thesis
 
-|     홍준기     |
-| :-----------: |
-| [@jungi0531](https://github.com/jungi0531) |
-| 경북대학교<br>컴퓨터학부 3학년 |
-| Full Stack |
+기존 명상 앱의 문제는 두 가지입니다.
 
-## 프로젝트 소개
+- 콘텐츠가 너무 일반적이라 지금 내 상태와 안 맞는다.
+- 같은 톤의 고정 콘텐츠를 반복해서 듣게 된다.
 
-지금여기(NowHere)는 **오늘 나의 감정과 하루 경험을 반영한 AI 맞춤형 명상 가이드**를 제공하는 모바일 앱입니다.
+`NowHere`의 제품 가설은 아래와 같습니다.
 
-기존 명상 앱들은 미리 만들어진 콘텐츠를 소비하는 구조입니다. 지금여기는 매일 나의 감정과 컨디션을 체크인하면, AI가 그날만의 명상 스크립트를 생성하고 자연스러운 한국어 TTS 음성으로 안내합니다.
+> 사람은 범용 명상 콘텐츠보다, 오늘의 감정과 맥락이 반영된 짧은 음성 가이드를 더 자주 다시 듣는다.
 
-**주요 특징:**
-- 🧘 감정/컨디션 기반 AI 맞춤형 명상 스크립트 생성
-- 🎙️ 자연스러운 한국어 TTS 음성 안내
-- ⏱️ 명상 길이 선택
-- 🪷 동자승 캐릭터
-- 📅 명상 기록 & 연속 달성 스트릭
+초기 버전은 이 가설 하나만 검증합니다.
 
-## Stacks
+## Product Decision
 
-### Environment
-![Android Studio](https://img.shields.io/badge/Android%20Studio-3DDC84?style=for-the-badge&logo=android-studio&logoColor=white)
-![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ_IDEA-000000?style=for-the-badge&logo=intellij-idea&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=Git&logoColor=white)
-![Github](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=GitHub&logoColor=white)
+이번 리빌드에서 고정하는 결정은 아래와 같습니다.
 
-### Frontend
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
+- 음성 경험은 `실시간 대화형`이 아니다.
+- 세션마다 `명상 스크립트 -> TTS 음성 파일 생성 -> 재생` 흐름으로 간다.
+- 생성 속도보다 중요한 것은 `짧은 대기 후 바로 재생 가능한 완성형 세션`이다.
+- 무거운 커스텀 백엔드 대신 `BaaS + Edge Functions` 구조로 간다.
+- MVP에서는 리텐션을 만드는 핵심 루프 외 요소를 최대한 배제한다.
+
+이 결정이 중요한 이유는, 지금 만들려는 제품의 핵심이 `음성 대화`가 아니라 `오늘의 나를 반영한 명상 콘텐츠 생성`이기 때문입니다.
+
+## Core User Flow
+
+1. 사용자가 감정, 에너지 상태, 명상 목적을 입력한다.
+2. 서버가 입력값을 바탕으로 명상 스크립트를 생성한다.
+3. 생성된 스크립트를 `Gemini 3.1 Flash TTS Preview`로 음성 파일화한다.
+4. 음성 파일과 세션 메타데이터를 저장한다.
+5. 앱은 저장된 결과를 재생하고, 사용자는 세션 후 짧은 회고를 남긴다.
+
+## MVP Scope
+
+### 1. Daily Check-in
+
+- 오늘 감정 선택
+- 현재 상태 한 줄 입력
+- 명상 목적 선택
+- 명상 길이 선택
+
+### 2. Script Generation
+
+- 입력값 기반 개인 맞춤 명상 스크립트 생성
+- 길이에 맞는 분량 제어
+- 톤 프리셋 적용
+
+### 3. Audio Session
+
+- TTS 음성 파일 생성
+- 음성 재생, 일시정지, 다시 듣기
+- 최근 생성 세션 재생
+
+### 4. Session Log
+
+- 생성된 세션 기록 저장
+- 명상 전후 감정 저장
+- 짧은 회고 메모 저장
+
+### 5. Retention Basics
+
+- 최근 세션 목록
+- 가벼운 스트릭 표시
+- 마지막 명상 이후 경과 시간 표시
+- 기본 푸시 리마인드 준비 구조
+
+## Out of Scope
+
+초기 버전에서는 아래를 하지 않습니다.
+
+- 실시간 대화형 명상 코치
+- 음성 입력 기반 대화
+- 동자승 캐릭터 중심 인터랙션
+- 소셜 기능
+- 복잡한 관리자 화면
+- 장문 일기 분석
+- 과한 게이미피케이션
+
+이유는 명확합니다. MVP에서 먼저 검증할 것은 `개인화된 명상 음성 세션이 반복 사용을 만드는가`입니다.
+
+스트릭은 완전히 빼지 않습니다. 다만 MVP에서는 `경쟁형 보상 시스템`이 아니라, 사용자가 자신의 루틴을 확인할 수 있는 **가벼운 시각적 신호** 수준으로만 포함합니다.
+
+## Recommended Stack
+
+### App
+
+- `Expo`
+- `React Native`
+- `TypeScript`
+- `Expo Router`
+- `NativeWind`
+- `Zustand`
+- `TanStack Query`
+
+이 조합을 고른 이유:
+
+- 모바일 MVP를 가장 빠르게 시작할 수 있다.
+- iOS와 Android를 동시에 커버하기 쉽다.
+- UI, 상태관리, 라우팅을 LLM과 함께 빠르게 반복 개발하기 좋다.
+- 혼자 만들고 운영하기에 복잡도가 과하지 않다.
 
 ### Backend
-![Java](https://img.shields.io/badge/Java_17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
 
-### AI / 외부 API
-![Claude](https://img.shields.io/badge/Claude_API-D97757?style=for-the-badge&logo=anthropic&logoColor=white)
-![Naver](https://img.shields.io/badge/Naver_Clova_TTS-03C75A?style=for-the-badge&logo=naver&logoColor=white)
-![Firebase](https://img.shields.io/badge/FCM-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+- `Supabase Auth`
+- `Supabase Postgres`
+- `Supabase Storage`
+- `Supabase Edge Functions`
 
----
+이 조합을 고른 이유:
 
-## 화면 구성
+- 사용자, 데이터, 파일 저장소를 한 번에 다룰 수 있다.
+- 별도 서버 프레임워크 운영 비용이 낮다.
+- 생성형 워크플로를 Edge Function 하나로 단순하게 묶기 좋다.
 
-| 홈 화면  |  감정 체크인   |
-| :-------------------------------------------: | :------------: |
-|  <img width="329" src=""/> | <img width="329" src=""/> |
-| 명상 진행 화면   |   명상 완료 화면   |
-| <img width="329" src="" /> | <img width="329" src="" /> |
+### AI
 
----
+- `Gemini 3 Flash`
+  - 체크인 입력 정리
+  - 명상 스크립트 생성
+  - 구조화된 세션 결과 생성
+- `Gemini 3.1 Flash TTS Preview`
+  - 명상 스크립트 음성 파일 생성
 
-## 주요 기능
+이 조합을 고른 이유:
 
-### ⭐️ AI 맞춤형 명상 스크립트 생성
-- 오늘의 감정, 컨디션, 하루 키워드 체크인
-- Claude API 기반 개인화 명상 스크립트 생성
-- AI 제공사 교체 가능한 인터페이스 패턴 설계 (Claude → GPT → Gemini)
+- 스크립트 생성과 TTS를 같은 생태계 안에서 관리할 수 있다.
+- TTS가 프롬프트 기반 스타일 제어에 강하다.
+- 실시간 대화형이 아니라 `완성된 음성 파일 생성` 구조에 맞다.
 
-### ⭐️ TTS 음성 명상 안내
-- Naver Clova Voice 기반 자연스러운 한국어 음성
-- 명상 길이 선택 (3분 / 5분 / 10분)
-- 호흡 타이밍, 시각화, 마음챙김 멘트 포함
+### Monitoring
 
-### ⭐️ 동자승 캐릭터
-- 홈 화면 상주 캐릭터
-- 오늘의 감정 상태에 따라 표정/멘트 변화
-- 명상 완료 후 반응 메시지
+- `PostHog`
+- `Sentry`
 
-### ⭐️ 명상 기록 & 스트릭 (v2.0)
-- 연속 명상 달성 스트릭
-- 이번 달 명상 캘린더
-- 감정 변화 트래킹
+## Architecture Principles
 
----
+이번 프로젝트는 MVP를 빠르게 완성하되, 이후 기능을 쉽게 붙일 수 있는 구조를 목표로 합니다.
+
+중요한 전제:
+
+- `MVP 전용 임시 코드`를 누적시키지 않는다.
+- 다만 `미래를 과도하게 대비한 과설계`도 하지 않는다.
+- 지금 필요한 추상화만 두되, 교체 가능성이 높은 경계는 처음부터 분리한다.
+
+핵심 원칙:
+
+- 도메인 로직과 UI를 분리한다.
+- 외부 서비스 연동 코드는 인터페이스 뒤로 숨긴다.
+- 기능 추가 시 기존 핵심 로직 수정 범위를 최소화한다.
+- 작은 객체와 작은 책임으로 나눈다.
+- 구현보다 계약을 먼저 정의한다.
+
+지키고 싶은 설계 방향:
+
+- `SOLID`를 지향한다.
+- 특히 `Open/Closed Principle`을 중요하게 본다.
+- `Gemini` 모델 교체, TTS 제공자 교체, 리텐션 기능 추가가 기존 핵심 흐름을 크게 흔들지 않아야 한다.
+
+예시 책임 분리:
+
+- `MeditationSessionService`
+- `CheckinService`
+- `ScriptGenerationService`
+- `TtsService`
+- `PlaybackService`
+- `ReminderService`
+- `SessionRepository`
+
+## Engineering Rules
+
+빠른 개발과 유지보수성을 같이 가져가기 위해 아래 규칙을 고정합니다.
+
+### Build Fast, But Clean
+
+- 기능은 빠르게 붙이되, 화면 컴포넌트 안에 비즈니스 로직을 길게 쌓지 않는다.
+- 한 번만 쓰는 코드라도 책임이 분명하면 함수나 서비스로 분리한다.
+- 외부 API 호출 코드는 화면 파일에 두지 않는다.
+- 임시 우회 코드를 넣었으면 같은 턴에서 정리하거나 명시적으로 남긴다.
+
+### Keep Boundaries Stable
+
+- UI 계층은 사용자 입력과 렌더링에 집중한다.
+- 애플리케이션 계층은 유스케이스 흐름을 담당한다.
+- 인프라 계층은 `Supabase`, `Gemini`, 오디오 플레이어 같은 외부 의존성을 담당한다.
+- 저장 포맷이나 외부 SDK 타입이 앱 전역으로 새지 않게 막는다.
+
+### Prefer Contracts Over Concrete SDK Usage
+
+- `TtsService`, `ScriptGenerationService`, `SessionRepository` 같은 인터페이스를 먼저 정의한다.
+- 실제 구현체는 `GeminiTtsService`, `SupabaseSessionRepository`처럼 뒤에 붙인다.
+- 나중에 구현체를 교체해도 호출부가 흔들리지 않게 만든다.
+
+### Keep Files Small
+
+- 한 파일이 여러 책임을 동시에 가지지 않게 한다.
+- 화면, 훅, 서비스, 매퍼, 타입 정의를 적절히 분리한다.
+- 길어진 파일은 기능이 아니라 책임 기준으로 쪼갠다.
+
+## Code Convention
+
+### Naming
+
+- 컴포넌트: `PascalCase`
+- 함수와 변수: `camelCase`
+- 타입과 인터페이스: `PascalCase`
+- 상수: 의미가 강한 값만 `SCREAMING_SNAKE_CASE`
+- 폴더명: 가급적 `kebab-case`
+
+### TypeScript
+
+- `any`는 금지하고 필요한 경우 명시적 타입을 정의한다.
+- API 응답은 앱 내부 타입으로 변환해서 사용한다.
+- `zod` 같은 스키마 검증 도입이 필요하면 외부 입력 경계에서만 쓴다.
+- nullable 상태와 loading 상태를 암묵적으로 처리하지 않는다.
+
+### React Native
+
+- 화면 컴포넌트는 가능한 한 얇게 유지한다.
+- 복잡한 상태 전이는 커스텀 훅이나 서비스 계층으로 뺀다.
+- 서버 상태는 `TanStack Query`, 앱 전역 상태는 `Zustand`로 역할을 나눈다.
+- 재사용되지 않는 UI 추상화는 억지로 만들지 않는다.
+
+### Folder Strategy
+
+권장 방향:
+
+- `app/`: 라우트와 화면 엔트리
+- `features/`: 체크인, 세션, 회고 등 기능 단위 코드
+- `entities/`: 공통 도메인 타입과 모델
+- `shared/`: 공용 UI, 유틸, 상수
+- `infrastructure/`: Supabase, Gemini, 오디오, 알림 연동
+
+## Implementation Strategy
+
+MVP 구현 순서는 빠르게 가되, 각 단계가 다음 단계의 기반이 되도록 쌓습니다.
+
+1. 먼저 동작하는 최소 플로우를 만든다.
+2. 바로 다음 단계에서 경계를 정리한다.
+3. 같은 패턴이 두 번 이상 나오면 공통화한다.
+4. 측정이 필요한 부분은 초기에 이벤트를 심는다.
+5. 확장 기능은 플래그나 별도 모듈로 붙일 수 있게 둔다.
+
+지금 당장 분리해야 하는 경계:
+
+- 체크인 입력 모델
+- 스크립트 생성 유스케이스
+- TTS 생성 유스케이스
+- 세션 저장소
+- 재생 상태 관리
+
+지금 굳이 복잡하게 만들 필요 없는 것:
+
+- 플러그인 시스템
+- 지나치게 일반화된 추상 팩토리
+- 모든 기능을 위한 공통 베이스 클래스
+- MVP 범위를 넘는 디자인 시스템 레이어
+
+## Why This Stack Fits Vibe Coding
+
+이 프로젝트는 아키텍처의 완벽함보다 `짧은 루프로 만들고 검증하는 속도`가 중요합니다.
+
+이 스택의 장점:
+
+- 초기 세팅이 가볍다.
+- 기능 단위로 작게 쪼개 작업하기 쉽다.
+- 문서와 예제가 풍부해 AI 보조 개발에 유리하다.
+- 혼자서도 배포와 운영까지 감당 가능하다.
+
+이번 버전에서 굳이 피하는 선택:
+
+- `Spring Boot`
+- 무거운 도메인 분리
+- 지나치게 이른 최적화
+- 시작부터 큰 자체 백엔드 구축
+
+## System Architecture
+
+### Session Pipeline
+
+1. 앱에서 체크인 데이터를 수집한다.
+2. 앱이 `Supabase Edge Function`에 세션 생성 요청을 보낸다.
+3. Edge Function이 `Gemini 3 Flash`로 명상 스크립트를 생성한다.
+4. 같은 함수에서 `Gemini 3.1 Flash TTS Preview`로 음성 파일을 만든다.
+5. 생성된 오디오를 `Supabase Storage`에 저장한다.
+6. 세션 메타데이터를 `Postgres`에 저장한다.
+7. 앱은 저장된 세션 결과를 받아 재생한다.
+
+### Why File-Based Audio
+
+이 프로젝트에서 음성은 `스트리밍 대화`보다 `완성형 오디오 세션`이 더 적합합니다.
+
+- 명상은 끊기지 않는 일관된 진행이 중요하다.
+- 세션 길이가 정해져 있어 파일 기반 재생이 단순하다.
+- 재생 완료율, 재청취율, 저장 구조를 다루기 쉽다.
+- 캐시 전략을 세우기 좋다.
+
+### Future Extension Strategy
+
+MVP는 단순하게 `스크립트 생성 -> 전체 TTS 생성 -> 재생`으로 갑니다.
+
+다만 이후 확장을 위해 세션 구조는 처음부터 `세그먼트` 개념을 수용할 수 있게 설계합니다.
+
+- 현재 MVP: 완성된 단일 오디오 파일 재생
+- 이후 확장: 세그먼트 단위 스크립트 생성
+- 이후 확장: 세그먼트 단위 TTS 생성
+- 이후 확장: 앞 세그먼트 먼저 재생하고 뒤 세그먼트는 백그라운드 생성
+
+이 구조를 염두에 두면 10분 이상 세션, 프리로딩, 재생 큐 같은 기능을 나중에 덜 아프게 붙일 수 있습니다.
+
+## Data Model Draft
+
+### `profiles`
+
+- 사용자 기본 정보
+- 선호 명상 길이
+- 선호 톤
+- 알림 설정
+
+### `checkins`
+
+- 감정
+- 에너지 상태
+- 오늘의 이슈
+- 명상 목적
+- 입력 일시
+
+### `meditation_sessions`
+
+- 사용자 ID
+- 체크인 ID
+- 생성된 스크립트
+- TTS 오디오 URL
+- 명상 길이
+- 톤 프리셋
+- 생성 상태
+- 재생 완료 여부
+
+### `reflection_logs`
+
+- 세션 ID
+- 명상 전 감정
+- 명상 후 감정
+- 회고 메모
+
+## Prompt Design Principles
+
+명상 스크립트는 그냥 "좋은 말"을 길게 생성하면 안 됩니다. 듣는 경험을 기준으로 구조를 강하게 잡아야 합니다.
+
+기본 구조:
+
+- 시작 안정화
+- 호흡 유도
+- 오늘 감정 반영
+- 핵심 메시지
+- 마무리 정리
+
+원칙:
+
+- 치료나 진단처럼 말하지 않는다.
+- 과도한 확신 표현을 피한다.
+- 짧고 낭독하기 좋은 문장으로 쓴다.
+- TTS가 자연스럽게 읽을 수 있게 문장 길이를 관리한다.
+- 한국어 사용자 기준으로 지나치게 번역투인 문장을 피한다.
+
+## UX Principles
+
+- 체크인은 1분 안에 끝나야 한다.
+- 생성 대기는 짧고 예측 가능해야 한다.
+- 재생 화면은 복잡하지 않아야 한다.
+- 명상 후 회고는 강요하지 않고 짧게 끝낼 수 있어야 한다.
+- 앱 전체 톤은 차분하지만 지나치게 종교적이거나 신비주의적으로 가지 않는다.
+
+## Daily Habit Design
+
+`NowHere`가 매일 켜는 앱이 되려면, 명상 생성 자체만으로는 부족합니다. 사용자가 부담 없이 다시 들어오게 만드는 습관 루프가 필요합니다.
+
+필요한 요소:
+
+- 홈에서 오늘 바로 시작할 수 있는 단일 CTA
+- 최근 들은 세션을 다시 재생할 수 있는 빠른 진입점
+- 오늘 했는지 안 했는지 한눈에 보이는 상태 표시
+- 부담 없는 가벼운 스트릭
+- 사용자가 정한 시간대의 리마인드
+- 명상 후 "오늘 어땠는지"를 짧게 남길 수 있는 최소 회고
+
+MVP에 포함할 것:
+
+- 홈 화면의 `오늘의 명상 시작` 버튼
+- 최근 세션 다시 듣기
+- 가벼운 스트릭 숫자 또는 점 표시
+- 명상 완료 여부 표시
+
+MVP에서 미룰 것:
+
+- 월간 캘린더
+- 배지 시스템
+- 레벨 시스템
+- 랭킹
+- 소셜 공유
+
+## Phase Plan
+
+### Phase 1
+
+- Expo 앱 초기 세팅
+- Supabase 연결
+- 체크인 폼 구현
+- 세션 생성 Edge Function 구현
+- TTS 생성 및 저장 구현
+- 명상 재생 화면 구현
+- 홈 화면의 빠른 시작 진입점
+- 명상 완료 여부 표시
+
+### Phase 2
+
+- 세션 히스토리
+- 회고 저장
+- 감정 전후 비교
+- 가벼운 스트릭
+- 리마인드 알림
+
+### Phase 3
+
+- 사용자별 추천 명상 타입
+- 톤 프리셋 고도화
+- 월간 기록 시각화
+- 세그먼트 오디오 전략
+
+## Success Metrics
+
+초기에는 다운로드 수보다 아래 지표가 중요합니다.
+
+- 체크인 완료율
+- 세션 생성 성공률
+- 재생 시작률
+- 재생 완료율
+- 7일 재방문율
+- 사용자당 주간 세션 생성 횟수
+
+## Risks
+
+- TTS 품질은 좋아도 생성 지연이 길면 이탈이 생길 수 있다.
+- 스크립트 품질이 일정하지 않으면 재사용 의지가 떨어진다.
+- 지나치게 무거운 감정 입력은 사용성을 해칠 수 있다.
+- 명상 문구가 어색하거나 번역투면 몰입감이 깨진다.
+
+초기 대응 방향:
+
+- 체크인 입력을 짧게 유지한다.
+- 프롬프트 템플릿을 고정해 품질 편차를 줄인다.
+- 세션 생성 실패와 지연을 로그로 추적한다.
+- 재생 완료율이 높은 세션 구조를 빠르게 학습한다.
+
+## Current Recommendation
+
+`NowHere`는 `실시간 음성 대화 앱`이 아니라, **개인 맞춤 명상 스크립트를 생성하고 음성 파일로 재생하는 모바일 제품**으로 정의하는 것이 맞습니다.
+
+현 시점 MVP 기준으로는 `Expo + Supabase + Gemini 3 Flash + Gemini 3.1 Flash TTS Preview` 조합이 가장 빠르고 현실적입니다.
+
+## References
+
+- Gemini models: https://ai.google.dev/gemini-api/docs/models
+- Gemini TTS: https://ai.google.dev/gemini-api/docs/speech-generation
