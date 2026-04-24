@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { StyleSheet, Text, Pressable, View } from 'react-native';
 
 import { AppButton, AppScreen, ScreenIntro, SurfaceCard } from '@/shared';
+import { useSessionDraftStore } from '@/shared/store/session-draft';
 
 const options = [
   { minutes: 3, label: '짧게', hint: '잠깐 숨 고르기', meta: '출근길, 회의 전' },
@@ -11,7 +11,8 @@ const options = [
 ] as const;
 
 export function MeditationLengthScreen() {
-  const [selected, setSelected] = useState<3 | 5 | 10>(5);
+  const selected = useSessionDraftStore((state) => state.duration);
+  const setDuration = useSessionDraftStore((state) => state.setDuration);
 
   return (
     <AppScreen tone="sage">
@@ -25,7 +26,7 @@ export function MeditationLengthScreen() {
         {options.map((option) => {
           const active = option.minutes === selected;
           return (
-            <Pressable key={option.minutes} onPress={() => setSelected(option.minutes)}>
+            <Pressable key={option.minutes} onPress={() => setDuration(option.minutes)}>
               <SurfaceCard style={[styles.option, active ? styles.optionActive : undefined]}>
                 <View style={styles.optionLeft}>
                   <View style={styles.minutesWrap}>

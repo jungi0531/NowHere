@@ -1,20 +1,30 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AppButton, AppScreen, ScreenIntro, SurfaceCard } from '@/shared';
+import { useSessionDraftStore, type SessionMood } from '@/shared/store/session-draft';
 
 const moods = [
-  ['맑음', '밝고 가벼워요', '☀'],
-  ['흐림', '애매하고 무거워요', '☁'],
-  ['안개', '생각이 흐릿해요', '〰'],
-  ['비', '가라앉아요', '☂'],
-  ['폭풍', '요동쳐요', '✦'],
-  ['눈', '차분해요', '❄'],
+  { title: '맑음', description: '밝고 가벼워요', icon: '☀' },
+  { title: '흐림', description: '애매하고 무거워요', icon: '☁' },
+  { title: '안개', description: '생각이 흐릿해요', icon: '〰' },
+  { title: '비', description: '가라앉아요', icon: '☂' },
+  { title: '폭풍', description: '요동쳐요', icon: '✦' },
+  { title: '눈', description: '차분해요', icon: '❄' },
 ] as const;
 
 const tags = ['#업무', '#관계', '#수면', '#건강', '#막연함'];
+const energyLevels = [20, 40, 60, 80, 100] as const;
 
 export function CheckInScreen() {
+  const mood = useSessionDraftStore((state) => state.mood);
+  const energy = useSessionDraftStore((state) => state.energy);
+  const note = useSessionDraftStore((state) => state.note);
+  const setMood = useSessionDraftStore((state) => state.setMood);
+  const setEnergy = useSessionDraftStore((state) => state.setEnergy);
+  const setNote = useSessionDraftStore((state) => state.setNote);
+  const energyWidth = `${energy}%` as const;
+
   return (
     <AppScreen scrollable tone="mist">
       <ScreenIntro
@@ -24,12 +34,16 @@ export function CheckInScreen() {
       />
 
       <View style={styles.moodGrid}>
-        {moods.map(([title, description, icon], index) => (
-          <SurfaceCard key={title} accent={index === 3} style={styles.moodCard}>
-            <Text style={styles.moodIcon}>{icon}</Text>
-            <Text style={styles.moodTitle}>{title}</Text>
-            <Text style={styles.moodDescription}>{description}</Text>
-          </SurfaceCard>
+        {moods.map(({ title, description, icon }) => (
+          <Pressable key={title} onPress={() => setMood(title as SessionMood)} style={styles.moodPressable}>
+            <SurfaceCard
+              accent={title === '비'}
+              style={[styles.moodCard, mood === title ? styles.moodCardActive : undefined]}>
+              <Text style={styles.moodIcon}>{icon}</Text>
+              <Text style={styles.moodTitle}>{title}</Text>
+              <Text style={styles.moodDescription}>{description}</Text>
+            </SurfaceCard>
+          </Pressable>
         ))}
       </View>
 
@@ -37,11 +51,26 @@ export function CheckInScreen() {
         <Text style={styles.label}>ENERGY · 지금 에너지</Text>
         <View style={styles.energyHeader}>
           <Text style={styles.energyHint}>지쳤어요</Text>
-          <Text style={styles.energyValue}>45%</Text>
+          <Text style={styles.energyValue}>{energy}%</Text>
           <Text style={styles.energyHint}>생생해요</Text>
         </View>
         <View style={styles.energyTrack}>
-          <View style={styles.energyFill} />
+          <View style={[styles.energyFill, { width: energyWidth }]} />
+        </View>
+        <View style={styles.energyOptions}>
+          {energyLevels.map((level) => {
+            const selected = energy === level;
+            return (
+              <Pressable
+                key={level}
+                onPress={() => setEnergy(level)}
+                style={[styles.energyOption, selected ? styles.energyOptionSelected : undefined]}>
+                <Text style={[styles.energyOptionText, selected ? styles.energyOptionTextSelected : undefined]}>
+                  {level}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </SurfaceCard>
 
@@ -50,8 +79,11 @@ export function CheckInScreen() {
         <TextInput
           style={styles.textArea}
           multiline
-          editable={false}
-          value="오늘 회의가 길어져서 머리가 복잡했다. 점심에 잠깐 햇빛을 쬐니 조금 나아졌다."
+          placeholder="지금 떠오르는 감정이나 몸의 상태를 짧게 남겨보세요."
+          placeholderTextColor="#7D877F"
+          textAlignVertical="top"
+          value={note}
+          onChangeText={setNote}
         />
         <View style={styles.tags}>
           {tags.map((tag) => (
@@ -74,9 +106,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   moodCard: {
-    width: '47%',
     minHeight: 124,
     justifyContent: 'space-between',
+  },
+  moodPressable: {
+    width: '47%',
+  },
+  moodCardActive: {
+    borderColor: '#6D8C6E',
+    borderWidth: 1.5,
+    backgroundColor: '#EEF4EA',
   },
   moodIcon: {
     fontSize: 24,
@@ -121,9 +160,32 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   energyFill: {
-    width: '45%',
     height: '100%',
     backgroundColor: '#7A9B79',
+  },
+  energyOptions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  energyOption: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: '#E8ECE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  energyOptionSelected: {
+    backgroundColor: '#7A9B79',
+  },
+  energyOptionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#5A675D',
+  },
+  energyOptionTextSelected: {
+    color: '#F7F4EE',
   },
   textArea: {
     minHeight: 128,
