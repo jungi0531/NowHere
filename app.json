@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "NowHere",
+    "slug": "nowhere",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "nowhere",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}

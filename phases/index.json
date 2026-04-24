@@ -1,0 +1,9 @@
+{
+  "phases": [
+    {
+      "dir": "0-foundation",
+      "name": "Foundation",
+      "status": "pending"
+    }
+  ]
+}

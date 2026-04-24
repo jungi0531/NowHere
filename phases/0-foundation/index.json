@@ -1,0 +1,27 @@
+{
+  "project": "NowHere",
+  "phase": "0-foundation",
+  "steps": [
+    {
+      "step": 0,
+      "name": "expo-scaffold",
+      "status": "completed",
+      "summary": "Expo 55 + TypeScript + Expo Router app shell added with minimal home screen and repo commands aligned.",
+      "started_at": "2026-04-23T14:00:00+00:00",
+      "completed_at": "2026-04-23T14:00:00+00:00"
+    },
+    {
+      "step": 1,
+      "name": "app-structure-foundation",
+      "status": "completed",
+      "summary": "App, feature, entity, shared, and infrastructure boundaries were established with thin entry points and placeholder contracts.",
+      "started_at": "2026-04-23T15:00:00+00:00",
+      "completed_at": "2026-04-23T15:00:00+00:00"
+    },
+    {
+      "step": 2,
+      "name": "quality-baseline",
+      "status": "pending"
+    }
+  ]
+}
