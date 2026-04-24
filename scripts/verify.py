@@ -11,6 +11,7 @@ Checks:
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +23,7 @@ REQUIRED_FILES = [
     ROOT / "README.md",
     ROOT / "CLAUDE.md",
     ROOT / "package.json",
+    ROOT / "eslint.config.js",
     ROOT / "app.json",
     ROOT / "tsconfig.json",
     ROOT / "docs" / "PRD.md",
@@ -86,6 +88,24 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def run_command(command: list[str]) -> tuple[bool, str]:
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    if result.returncode == 0:
+        return True, ""
+
+    output = (result.stdout + result.stderr).strip()[-2000:]
+    message = f"Command failed: {' '.join(command)} (exit {result.returncode})"
+    if output:
+        message += f"\n{output}"
+    return False, message
+
+
 def verify() -> dict:
     failures: list[str] = []
     warnings: list[str] = []
@@ -147,12 +167,18 @@ def verify() -> dict:
         try:
             package_json = read_json(package_json_path)
             scripts = package_json.get("scripts", {})
-            required_scripts = ["start", "android", "ios", "web", "typecheck", "verify"]
+            required_scripts = ["start", "android", "ios", "web", "lint", "typecheck", "verify"]
             for script_name in required_scripts:
                 if script_name not in scripts:
                     failures.append(f"package.json is missing required script `{script_name}`.")
         except json.JSONDecodeError as exc:
             failures.append(f"Invalid JSON in package.json: {exc}")
+
+    if not failures:
+        for command in (["npm", "run", "typecheck"], ["npm", "run", "lint"]):
+            ok, message = run_command(command)
+            if not ok:
+                failures.append(message)
 
     report = {
         "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),

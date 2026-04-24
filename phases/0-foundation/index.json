@@ -21,7 +21,10 @@
     {
       "step": 2,
       "name": "quality-baseline",
-      "status": "pending"
+      "status": "completed",
+      "summary": "Added project lint baseline, wired typecheck and lint into verify, and kept AppProviders as a no-op composition entry point.",
+      "started_at": "2026-04-24T03:37:57+00:00",
+      "completed_at": "2026-04-24T03:37:57+00:00"
     }
   ]
 }

@@ -20,8 +20,9 @@ These are the current stable project-wide commands.
 | Open Android target | `npm run android` |
 | Open iOS target | `npm run ios` |
 | Open web target | `npm run web` |
+| Lint app code | `npm run lint` |
 | Type check | `npm run typecheck` |
-| Verify docs and harness structure | `python3 scripts/verify.py` |
+| Verify repo baseline | `python3 scripts/verify.py` |
 | Execute a phase | `python3 scripts/execute.py 0-foundation` |
 
 ## Critical Rules
