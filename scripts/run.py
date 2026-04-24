@@ -32,12 +32,13 @@ def main() -> int:
         return 1
 
     for label, base_command in STAGES:
-        command = base_command.copy()
-        if "execute.py" in base_command[-1]:
+        if "execute.py" in base_command[1]:
             if "--review" in base_command:
                 command = ["python3", "scripts/execute.py", phase, "--review"]
             else:
                 command = ["python3", "scripts/execute.py", phase]
+        else:
+            command = base_command.copy()
 
         print(f"\n{label}")
         result = subprocess.run(command, cwd=ROOT)
