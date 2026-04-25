@@ -1,15 +1,14 @@
-import { getPublicEnv } from '@/infrastructure/env';
+import { requireEnv } from '@/infrastructure/env';
 
 export type SupabaseClientContract = {
-  url?: string;
-  anonKey?: string;
+  url: string;
+  anonKey: string;
 };
 
 export function getSupabaseClientContract(): SupabaseClientContract {
-  const env = getPublicEnv();
-
+  const env = requireEnv();
   return {
-    url: env.expoPublicSupabaseUrl,
-    anonKey: env.expoPublicSupabaseAnonKey,
+    url: env.supabaseUrl,
+    anonKey: env.supabaseAnonKey,
   };
 }

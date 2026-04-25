@@ -5,7 +5,10 @@
     {
       "step": 1,
       "name": "env-and-packages",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T15:04:12+00:00",
+      "completed_at": "2026-04-26T00:00:00+00:00",
+      "summary": "Extended env layer with requireEnv() and AppEnv type (adding EXPO_PUBLIC_GEMINI_API_KEY), updated supabase/index.ts and infrastructure/index.ts barrel to use the new API, created .env.example, and installed expo-av and expo-file-system via npx expo install. All acceptance criteria pass."
     },
     {
       "step": 2,
