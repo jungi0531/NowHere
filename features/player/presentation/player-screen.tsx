@@ -1,3 +1,4 @@
+import { Audio } from 'expo-av';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -18,8 +19,26 @@ export function PlayerScreen() {
   const duration = useSessionDraftStore((state) => state.duration);
   const note = useSessionDraftStore((state) => state.note);
   const reset = useSessionDraftStore((state) => state.reset);
+  const audioUri = useSessionDraftStore((state) => state.audioUri);
   const totalSeconds = duration * 60;
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!audioUri) return;
+    let sound: Audio.Sound | null = null;
+
+    async function loadAndPlay() {
+      const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri! });
+      sound = s;
+      await sound.playAsync();
+    }
+
+    void loadAndPlay();
+
+    return () => {
+      void sound?.unloadAsync();
+    };
+  }, [audioUri]);
 
   useEffect(() => {
     setElapsedSeconds(0);

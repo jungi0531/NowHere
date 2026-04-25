@@ -31,13 +31,16 @@
       "name": "supabase-session-log",
       "status": "completed",
       "started_at": "2026-04-25T15:08:50+00:00",
-      "completed_at": "2026-04-26T00:00:00+00:00",
+      "completed_at": "2026-04-25T15:09:45+00:00",
       "summary": "Created infrastructure/db/sessions.ts with logSession() that POSTs to the Supabase REST API (no SDK, plain fetch), added infrastructure/db/index.ts barrel, and re-exported from infrastructure/index.ts. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
     },
     {
       "step": 5,
       "name": "wire-generating-player",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T15:09:45+00:00",
+      "completed_at": "2026-04-26T00:00:00+00:00",
+      "summary": "Extended session-draft store with audioUri and sessionId fields. Replaced the mock timer in GeneratingScreen with real service calls (script → TTS → log) using a ref guard to prevent double-firing. Updated PlayerScreen to load and play the generated audio file via expo-av alongside the existing breath animation and progress timer. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
     }
   ]
 }
