@@ -39,7 +39,7 @@
       "name": "wire-generating-player",
       "status": "completed",
       "started_at": "2026-04-25T15:09:45+00:00",
-      "completed_at": "2026-04-26T00:00:00+00:00",
+      "completed_at": "2026-04-25T15:11:13+00:00",
       "summary": "Extended session-draft store with audioUri and sessionId fields. Replaced the mock timer in GeneratingScreen with real service calls (script → TTS → log) using a ref guard to prevent double-firing. Updated PlayerScreen to load and play the generated audio file via expo-av alongside the existing breath animation and progress timer. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
     }
   ]
