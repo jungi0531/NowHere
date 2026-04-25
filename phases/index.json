@@ -23,6 +23,12 @@
       "name": "Full Loop Automation",
       "status": "completed",
       "updated_at": "2026-04-24T08:55:53+00:00"
+    },
+    {
+      "dir": "4-api-integration",
+      "name": "API Integration",
+      "status": "completed",
+      "updated_at": "2026-04-25T15:11:13+00:00"
     }
   ]
 }

@@ -1,0 +1,14 @@
+{
+  "project": "NowHere",
+  "phase": "_review-smoke",
+  "steps": [
+    {
+      "step": 1,
+      "name": "review-artifact-smoke",
+      "status": "completed",
+      "summary": "Smoke phase for validating execute.py --review artifact creation.",
+      "started_at": "2026-04-24T00:00:00+00:00",
+      "completed_at": "2026-04-24T00:00:00+00:00"
+    }
+  ]
+}
