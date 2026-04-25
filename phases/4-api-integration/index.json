@@ -15,13 +15,16 @@
       "name": "gemini-script-service",
       "status": "completed",
       "started_at": "2026-04-25T15:05:43+00:00",
-      "completed_at": "2026-04-26T00:00:00+00:00",
+      "completed_at": "2026-04-25T15:06:54+00:00",
       "summary": "Created infrastructure/ai/gemini.ts with generateMeditationScript() and buildPrompt() using the Gemini REST API, added infrastructure/ai/index.ts barrel, and re-exported from infrastructure/index.ts. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
     },
     {
       "step": 3,
       "name": "gemini-tts-service",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-25T15:06:54+00:00",
+      "completed_at": "2026-04-26T00:00:00+00:00",
+      "summary": "Created infrastructure/ai/tts.ts with generateAudio() that calls the Gemini TTS Preview API, builds a WAV header from raw PCM data, and writes the file using the new expo-file-system File/Paths API. Updated infrastructure/ai/index.ts to re-export generateAudio. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
     },
     {
       "step": 4,
