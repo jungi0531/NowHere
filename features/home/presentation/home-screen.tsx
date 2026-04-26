@@ -24,6 +24,12 @@ export function HomeScreen() {
         </Text>
         <View style={styles.ctaWrap}>
           <AppButton label="오늘의 명상 만들기" onPress={() => router.push('/check-in')} />
+          <AppButton
+            kind="secondary"
+            label="지난 세션"
+            onPress={() => router.push('/history')}
+            style={styles.secondaryBtn}
+          />
         </View>
       </SurfaceCard>
 
@@ -112,6 +118,10 @@ const styles = StyleSheet.create({
   },
   ctaWrap: {
     marginTop: 18,
+    gap: 10,
+  },
+  secondaryBtn: {
+    alignSelf: 'flex-start',
   },
   statsRow: {
     flexDirection: 'row',

@@ -1,0 +1,14 @@
+{
+  "project": "NowHere",
+  "phase": "5-session-history",
+  "steps": [
+    {
+      "step": 1,
+      "name": "history-screen",
+      "status": "completed",
+      "started_at": "2026-04-26T04:21:18+00:00",
+      "summary": "Added fetchRecentSessions to infrastructure/db/sessions.ts; created features/history/presentation/history-screen.tsx with loading, empty, and list states; created features/history/index.ts; exported HistoryScreen from features/index.ts; created app/history.tsx route; added '지난 세션' secondary AppButton to HomeScreen that navigates to /history. All acceptance criteria pass.",
+      "completed_at": "2026-04-26T04:22:55+00:00"
+    }
+  ]
+}

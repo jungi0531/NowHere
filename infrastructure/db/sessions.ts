@@ -41,3 +41,36 @@ export async function logSession(log: SessionLog): Promise<void> {
     throw new Error(`Supabase logSession error ${response.status}: ${errorText}`);
   }
 }
+
+export type SessionSummary = {
+  id: string;
+  mood: string;
+  duration: number;
+  createdAt: string;
+};
+
+export async function fetchRecentSessions(limit = 20): Promise<SessionSummary[]> {
+  const { supabaseUrl, supabaseAnonKey } = requireEnv();
+  const url = `${supabaseUrl}/rest/v1/meditation_sessions?select=id,mood,duration_minutes,created_at&order=created_at.desc&limit=${limit}`;
+
+  const response = await fetch(url, {
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${supabaseAnonKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`fetchRecentSessions error ${response.status}`);
+  }
+
+  const rows: { id: string; mood: string; duration_minutes: number; created_at: string }[] =
+    await response.json();
+
+  return rows.map((r) => ({
+    id: r.id,
+    mood: r.mood,
+    duration: r.duration_minutes,
+    createdAt: r.created_at,
+  }));
+}
