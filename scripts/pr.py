@@ -110,6 +110,13 @@ def format_non_blocking(review: dict[str, Any]) -> str:
     return json.dumps(items, indent=2, ensure_ascii=False)
 
 
+def push_current_branch(branch: str) -> None:
+    result = run_command(["git", "push", "-u", "origin", branch])
+    if result.returncode != 0:
+        output = (result.stderr or result.stdout).strip()
+        fail(f"git push failed.\n{output}")
+
+
 def create_pr(title: str, body: str) -> str:
     result = run_command(["gh", "pr", "create", "--base", TARGET_BRANCH, "--title", title, "--body", body])
     if result.returncode != 0:
@@ -123,9 +130,10 @@ def create_pr(title: str, body: str) -> str:
 
 
 def main() -> int:
-    require_feature_branch()
+    branch = require_feature_branch()
     require_develop_target()
     require_verify_passes()
+    push_current_branch(branch)
 
     phase, phase_index = latest_phase()
     step = latest_completed_step(phase_index)
