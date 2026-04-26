@@ -1,4 +1,3 @@
-import { Audio } from 'expo-av';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -25,12 +24,18 @@ export function PlayerScreen() {
 
   useEffect(() => {
     if (!audioUri) return;
-    let sound: Audio.Sound | null = null;
+    let sound: import('expo-av').Audio.Sound | null = null;
 
     async function loadAndPlay() {
-      const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri! });
-      sound = s;
-      await sound.playAsync();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Audio } = require('expo-av') as typeof import('expo-av');
+        const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri! });
+        sound = s;
+        await s.playAsync();
+      } catch {
+        // expo-av native module unavailable (Expo Go) — audio skipped
+      }
     }
 
     void loadAndPlay();
