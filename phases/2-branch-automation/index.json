@@ -1,0 +1,13 @@
+{
+  "project": "NowHere",
+  "phase": "2-branch-automation",
+  "steps": [
+    {
+      "step": 1,
+      "name": "pr-and-automerge-scripts",
+      "status": "completed",
+      "summary": "Added scripts/pr.py and scripts/auto_merge.py for feature→develop automation.",
+      "completed_at": "2026-04-24T08:26:25+00:00"
+    }
+  ]
+}

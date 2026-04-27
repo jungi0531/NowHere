@@ -1,0 +1,46 @@
+{
+  "project": "NowHere",
+  "phase": "4-api-integration",
+  "steps": [
+    {
+      "step": 1,
+      "name": "env-and-packages",
+      "status": "completed",
+      "started_at": "2026-04-25T15:04:12+00:00",
+      "completed_at": "2026-04-25T15:05:43+00:00",
+      "summary": "Extended env layer with requireEnv() and AppEnv type (adding EXPO_PUBLIC_GEMINI_API_KEY), updated supabase/index.ts and infrastructure/index.ts barrel to use the new API, created .env.example, and installed expo-av and expo-file-system via npx expo install. All acceptance criteria pass."
+    },
+    {
+      "step": 2,
+      "name": "gemini-script-service",
+      "status": "completed",
+      "started_at": "2026-04-25T15:05:43+00:00",
+      "completed_at": "2026-04-25T15:06:54+00:00",
+      "summary": "Created infrastructure/ai/gemini.ts with generateMeditationScript() and buildPrompt() using the Gemini REST API, added infrastructure/ai/index.ts barrel, and re-exported from infrastructure/index.ts. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
+    },
+    {
+      "step": 3,
+      "name": "gemini-tts-service",
+      "status": "completed",
+      "started_at": "2026-04-25T15:06:54+00:00",
+      "completed_at": "2026-04-25T15:08:50+00:00",
+      "summary": "Created infrastructure/ai/tts.ts with generateAudio() that calls the Gemini TTS Preview API, builds a WAV header from raw PCM data, and writes the file using the new expo-file-system File/Paths API. Updated infrastructure/ai/index.ts to re-export generateAudio. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
+    },
+    {
+      "step": 4,
+      "name": "supabase-session-log",
+      "status": "completed",
+      "started_at": "2026-04-25T15:08:50+00:00",
+      "completed_at": "2026-04-25T15:09:45+00:00",
+      "summary": "Created infrastructure/db/sessions.ts with logSession() that POSTs to the Supabase REST API (no SDK, plain fetch), added infrastructure/db/index.ts barrel, and re-exported from infrastructure/index.ts. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
+    },
+    {
+      "step": 5,
+      "name": "wire-generating-player",
+      "status": "completed",
+      "started_at": "2026-04-25T15:09:45+00:00",
+      "completed_at": "2026-04-25T15:11:13+00:00",
+      "summary": "Extended session-draft store with audioUri and sessionId fields. Replaced the mock timer in GeneratingScreen with real service calls (script → TTS → log) using a ref guard to prevent double-firing. Updated PlayerScreen to load and play the generated audio file via expo-av alongside the existing breath animation and progress timer. All acceptance criteria pass: verify.py, typecheck, and lint are clean."
+    }
+  ]
+}

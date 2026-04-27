@@ -8,10 +8,14 @@ type SessionDraftState = {
   energy: number;
   note: string;
   duration: SessionDuration;
+  audioUri: string | null;
+  sessionId: string | null;
   setMood: (mood: SessionMood) => void;
   setEnergy: (energy: number) => void;
   setNote: (note: string) => void;
   setDuration: (duration: SessionDuration) => void;
+  setAudioUri: (uri: string | null) => void;
+  setSessionId: (id: string | null) => void;
   reset: () => void;
 };
 
@@ -20,6 +24,8 @@ const DEFAULT_STATE = {
   energy: 40,
   note: '',
   duration: 5 as SessionDuration,
+  audioUri: null,
+  sessionId: null,
 };
 
 function clampEnergy(energy: number) {
@@ -32,5 +38,7 @@ export const useSessionDraftStore = create<SessionDraftState>((set) => ({
   setEnergy: (energy) => set({ energy: clampEnergy(energy) }),
   setNote: (note) => set({ note }),
   setDuration: (duration) => set({ duration }),
+  setAudioUri: (uri) => set({ audioUri: uri }),
+  setSessionId: (id) => set({ sessionId: id }),
   reset: () => set(DEFAULT_STATE),
 }));

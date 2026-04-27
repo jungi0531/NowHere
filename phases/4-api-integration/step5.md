@@ -1,3 +1,80 @@
+# Step 5: wire-generating-player
+
+## Read First
+
+- `/CLAUDE.md`
+- `/shared/store/session-draft.ts`
+- `/features/generating/presentation/generating-screen.tsx`
+- `/features/player/presentation/player-screen.tsx`
+- `/infrastructure/ai/gemini.ts`
+- `/infrastructure/ai/tts.ts`
+- `/infrastructure/db/sessions.ts`
+
+## Goal
+
+Wire the real services into the app:
+1. Extend `session-draft` store with `audioUri` and `sessionId` fields.
+2. Replace the mock timer in `GeneratingScreen` with real service calls (script → TTS → log).
+3. Update `PlayerScreen` to play the generated audio file via `expo-av`.
+
+## Work
+
+### shared/store/session-draft.ts
+
+Add `audioUri` and `sessionId` to the store. Full replacement:
+
+```typescript
+import { create } from 'zustand';
+
+export type SessionMood = '맑음' | '흐림' | '안개' | '비' | '폭풍' | '눈';
+export type SessionDuration = 3 | 5 | 10;
+
+type SessionDraftState = {
+  mood: SessionMood;
+  energy: number;
+  note: string;
+  duration: SessionDuration;
+  audioUri: string | null;
+  sessionId: string | null;
+  setMood: (mood: SessionMood) => void;
+  setEnergy: (energy: number) => void;
+  setNote: (note: string) => void;
+  setDuration: (duration: SessionDuration) => void;
+  setAudioUri: (uri: string | null) => void;
+  setSessionId: (id: string | null) => void;
+  reset: () => void;
+};
+
+const DEFAULT_STATE = {
+  mood: '맑음' as SessionMood,
+  energy: 40,
+  note: '',
+  duration: 5 as SessionDuration,
+  audioUri: null,
+  sessionId: null,
+};
+
+function clampEnergy(energy: number) {
+  return Math.max(0, Math.min(100, Math.round(energy)));
+}
+
+export const useSessionDraftStore = create<SessionDraftState>((set) => ({
+  ...DEFAULT_STATE,
+  setMood: (mood) => set({ mood }),
+  setEnergy: (energy) => set({ energy: clampEnergy(energy) }),
+  setNote: (note) => set({ note }),
+  setDuration: (duration) => set({ duration }),
+  setAudioUri: (uri) => set({ audioUri: uri }),
+  setSessionId: (id) => set({ sessionId: id }),
+  reset: () => set(DEFAULT_STATE),
+}));
+```
+
+### features/generating/presentation/generating-screen.tsx
+
+Replace the file entirely. The 4 visual steps map to the 4 real operations:
+
+```typescript
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -10,7 +87,7 @@ import { useSessionDraftStore } from '@/shared/store/session-draft';
 
 type StepState = 'idle' | 'active' | 'done' | 'error';
 
-const STEP_LABELS: { ko: string; en: string }[] = [
+const STEP_LABELS: Array<{ ko: string; en: string }> = [
   { ko: '오늘의 마음을 읽는 중', en: "Reading today's entry" },
   { ko: '스크립트를 쓰는 중', en: 'Composing the script' },
   { ko: '목소리를 빚는 중', en: 'Shaping the voice' },
@@ -145,3 +222,49 @@ const styles = StyleSheet.create({
   check: { fontSize: 16, color: '#51775B', fontWeight: '700' },
   errorText: { fontSize: 14, color: '#B55A5A', textAlign: 'center', maxWidth: 300 },
 });
+```
+
+### features/player/presentation/player-screen.tsx
+
+Add `expo-av` playback when `audioUri` is available. Add the following to the existing file:
+
+- Import `Audio` from `expo-av` at the top.
+- Import `useRef` if not already imported (it already is).
+- Add a `soundRef = useRef<Audio.Sound | null>(null)` inside `PlayerScreen`.
+- Read `audioUri` from the store: `const audioUri = useSessionDraftStore((s) => s.audioUri);`
+- Add a `useEffect` that loads and plays the audio when `audioUri` changes:
+
+```typescript
+useEffect(() => {
+  if (!audioUri) return;
+  let sound: Audio.Sound | null = null;
+
+  async function loadAndPlay() {
+    const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri! });
+    sound = s;
+    await sound.playAsync();
+  }
+
+  void loadAndPlay();
+
+  return () => {
+    void sound?.unloadAsync();
+  };
+}, [audioUri]);
+```
+
+Do not remove any existing logic (breath animation, progress timer, etc.). Add this effect alongside the existing effects.
+
+## Acceptance Criteria
+
+```bash
+python3 scripts/verify.py
+npm run typecheck
+npm run lint
+```
+
+## Status Rules
+
+- success: mark this step `completed` and add a short `summary`
+- failure after retries: mark this step `error` with `error_message`
+- user action needed: mark this step `blocked` with `blocked_reason`

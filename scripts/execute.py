@@ -281,6 +281,76 @@ def write_correction_prompt(
     correction_prompt_file.write_text(content + "\n", encoding="utf-8")
 
 
+def run_step_review(phase_dir: Path, index: dict, step_number: int, guardrails: str) -> int:
+    try:
+        if not REVIEW_PROMPT_FILE.exists():
+            print(f"WARNING: Review prompt not found: {relative_path(REVIEW_PROMPT_FILE)}", file=sys.stderr)
+            return 0
+
+        review_file = phase_dir / f"step{step_number}-review.json"
+        correction_prompt_file = phase_dir / f"step{step_number}-correction-prompt.md"
+        if review_file.exists():
+            existing = read_json(review_file)
+            print(f"Review already exists: {relative_path(review_file)}")
+            if existing.get("verdict") == "needs_correction":
+                correction_prompt_path = existing.get("correction_prompt_path")
+                warning = (
+                    f"WARNING: Claude review found blocking issues for step {step_number}: "
+                    f"{relative_path(review_file)}"
+                )
+                if correction_prompt_path:
+                    warning += f"; correction prompt: {correction_prompt_path}"
+                print(warning, file=sys.stderr)
+            return 0
+
+        prompt = build_review_prompt(phase_dir, index, step_number, guardrails)
+        print(f"Running Claude review for step {step_number}: {phase_dir.name}")
+        raw = invoke_claude_text(prompt)
+
+        correction_prompt_path: Optional[str] = None
+        try:
+            parsed = parse_claude_review(raw)
+            blocking = as_list(parsed.get("blocking"))
+            non_blocking = as_list(parsed.get("non_blocking"))
+            verdict = "needs_correction" if blocking else "pass"
+        except (json.JSONDecodeError, TypeError, AttributeError) as exc:
+            blocking = []
+            non_blocking = [
+                {
+                    "reason": "Claude review output could not be parsed; treating as non-blocking.",
+                    "error": str(exc),
+                    "raw": raw,
+                }
+            ]
+            verdict = "pass"
+
+        if blocking:
+            if not correction_prompt_file.exists():
+                write_correction_prompt(correction_prompt_file, phase_dir, step_number, blocking, non_blocking)
+            correction_prompt_path = relative_path(correction_prompt_file)
+
+        review = {
+            "step": step_number,
+            "timestamp": now_iso(),
+            "verdict": verdict,
+            "blocking": blocking,
+            "non_blocking": non_blocking,
+            "correction_prompt_path": correction_prompt_path,
+        }
+        write_json(review_file, review)
+
+        print(f"Review artifact: {relative_path(review_file)}")
+        if verdict == "needs_correction":
+            print(
+                f"WARNING: Claude review found blocking issues for step {step_number}; "
+                f"correction prompt: {correction_prompt_path}",
+                file=sys.stderr,
+            )
+    except Exception as exc:
+        print(f"WARNING: Claude review for step {step_number} could not be completed: {exc}", file=sys.stderr)
+    return 0
+
+
 def review_phase(phase_dir_name: str) -> int:
     phase_dir = PHASES_DIR / phase_dir_name
     index_file = phase_dir / "index.json"
@@ -347,6 +417,20 @@ def review_phase(phase_dir_name: str) -> int:
     return 0
 
 
+def auto_commit(step_number: int, step_name: str) -> None:
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if not result.stdout.strip():
+        return
+    subprocess.run(["git", "add", "-A"], cwd=ROOT, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", f"feat: step {step_number} — {step_name}"],
+        cwd=ROOT, check=True,
+    )
+
+
 def get_step(index: dict, step_number: int) -> dict:
     for step in index["steps"]:
         if step["step"] == step_number:
@@ -408,6 +492,8 @@ def execute_phase(phase_dir_name: str) -> int:
                 if passed:
                     current["completed_at"] = now_iso()
                     write_json(index_file, index)
+                    auto_commit(step_number, step_name)
+                    run_step_review(phase_dir, index, step_number, guardrails)
                     print(f"Completed step {step_number}: {step_name}")
                     break
                 current["status"] = "pending"

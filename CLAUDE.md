@@ -24,6 +24,10 @@ These are the current stable project-wide commands.
 | Type check | `npm run typecheck` |
 | Verify repo baseline | `python3 scripts/verify.py` |
 | Execute a phase | `python3 scripts/execute.py 0-foundation` |
+| Create PR to develop | `python3 scripts/pr.py` |
+| Auto-merge to develop | `python3 scripts/auto_merge.py` |
+| Start issue + branch  | `python3 scripts/start.py "description"` |
+| Run full loop         | `python3 scripts/run.py <phase>`         |
 
 ## Critical Rules
 
@@ -42,11 +46,25 @@ These are the current stable project-wide commands.
 - Keep files focused on one responsibility.
 - Favor contracts first for components likely to change later.
 
+## Operating Model
+
+These rules govern how development work is performed. They exist to keep the automation loop reliable.
+
+- ALL implementation is performed by running `python3 scripts/execute.py <phase>`. Not by conversation. Not by direct editing.
+- Humans write step specs (`phases/<phase>/stepN.md`) and review results. Nothing else.
+- `phases/<phase>/index.json` is written only by the executor. Humans do not edit it directly.
+- A step spec must be ready and reviewed before `execute.py` is invoked. No spec = no execution.
+- When `execute.py` finishes, the human reviews the output artifact and either accepts or revises the spec.
+
 ## Harness Rules
 
+These rules apply to the executor agent running a step.
+
 - Read this file and the relevant files in `docs/` before executing a step.
-- Update step status only inside the relevant `phases/.../index.json`.
+- Implement only what the step spec requires. Do not expand scope.
+- Update step status only inside the relevant `phases/<phase>/index.json`.
 - Use these statuses only: `pending`, `completed`, `error`, `blocked`.
 - On success, include a short `summary`.
 - On failure after retries, include `error_message`.
 - On blocked work, include `blocked_reason`.
+- A step is not `completed` until its Acceptance Criteria commands all exit 0.

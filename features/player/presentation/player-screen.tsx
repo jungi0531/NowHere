@@ -18,8 +18,32 @@ export function PlayerScreen() {
   const duration = useSessionDraftStore((state) => state.duration);
   const note = useSessionDraftStore((state) => state.note);
   const reset = useSessionDraftStore((state) => state.reset);
+  const audioUri = useSessionDraftStore((state) => state.audioUri);
   const totalSeconds = duration * 60;
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!audioUri) return;
+    let sound: import('expo-av').Audio.Sound | null = null;
+
+    async function loadAndPlay() {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Audio } = require('expo-av') as typeof import('expo-av');
+        const { sound: s } = await Audio.Sound.createAsync({ uri: audioUri! });
+        sound = s;
+        await s.playAsync();
+      } catch {
+        // expo-av native module unavailable (Expo Go) — audio skipped
+      }
+    }
+
+    void loadAndPlay();
+
+    return () => {
+      void sound?.unloadAsync();
+    };
+  }, [audioUri]);
 
   useEffect(() => {
     setElapsedSeconds(0);
